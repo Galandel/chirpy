@@ -21,9 +21,11 @@ func main() {
 
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))))
 
-	mux.HandleFunc("/api/healthz", handlerHealthz)
-	mux.HandleFunc("/api/metrics", apiCfg.handlerMetrics)
-	mux.HandleFunc("/api/reset", apiCfg.handlerReset)
+	mux.HandleFunc("GET /api/healthz", handlerHealthz)
+	mux.HandleFunc("POST /api/validate_chirp", handlerValidate)
+
+	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
+	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
@@ -51,11 +53,16 @@ func handlerHealthz(w http.ResponseWriter, r *http.Request) {
 
 // Print Current hits metric
 func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
-	if _, err := fmt.Fprintf(w, "Hits: %d", cfg.fileserverHits.Load()); err != nil {
-		log.Printf("error writing response: %v", err)
-	}
+	fmt.Fprintf(w, `
+	<html>
+		<body>
+			<h1>Welcome, Chirpy Admin</h1>
+			<p>Chirpy has been visited %d times!</p>
+		</body>
+	</html>
+	`, cfg.fileserverHits.Load())
 }
 
 // Reset hits metric
